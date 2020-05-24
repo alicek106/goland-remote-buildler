@@ -1,0 +1,56 @@
+FROM ubuntu:18.04
+
+# Install necessary packages
+RUN apt update && \
+  apt install wget vim curl git mercurial python3 build-essential cmake python3-dev ctags -y
+
+# Install Go
+RUN wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz && \
+  tar -xvf go1.13.3.linux-amd64.tar.gz && \
+  mv go /usr/local && \
+  mkdir /root/go
+
+# Go Environment
+ENV GOROOT /usr/local/go
+ENV GOPATH /root/go
+ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
+
+# pathogen, vimrc
+RUN mkdir -p ~/.vim/autoload && mkdir ~/.vim/bundle && \
+  curl -LSso ~/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim
+ADD .vimrc /root/
+ADD script.sh /root/
+
+# Tools
+RUN git clone https://github.com/fatih/vim-go.git ~/.vim/bundle/vim-go
+RUN git clone https://github.com/Valloric/YouCompleteMe.git ~/.vim/bundle/YouCompleteMe
+RUN git clone https://github.com/majutsushi/tagbar.git ~/.vim/bundle/tagbar
+RUN git clone https://github.com/scrooloose/nerdtree.git ~/.vim/bundle/nerdtree
+
+# Install Auto complete
+WORKDIR /root/.vim/bundle/YouCompleteMe
+RUN git submodule update --init --recursive && python3 install.py
+RUN ln -s /root/go /root/.vim/bundle/YouCompleteMe/third_party/ycmd/third_party/go
+
+WORKDIR /root/go
+
+# Installl go-vim
+RUN bash /root/script.sh
+RUN vim +':GoInstallBinaries' +qall
+
+# Install SSH
+RUN apt install openssh-server locales -y
+RUN echo "root:theoryofhappiness" | chpasswd && \
+  mkdir /var/run/sshd
+
+# SSH setting
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+
+# Language Setting
+RUN locale-gen ko_KR.UTF-8
+ENV LANG ko_KR.UTF-8
+ENV LANGUAGE ko_KR:en
+ENV LC_ALL ko_KR.UTF-8
+
+ADD ["entrypoint.sh", "./"]
+ENTRYPOINT ["./entrypoint.sh"]

@@ -1,0 +1,38 @@
+FROM ubuntu:18.04
+
+# Install necessary packages
+RUN apt update && \
+  apt install wget vim curl git -y
+
+# Install Go
+RUN wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz && \
+  tar -xvf go1.13.3.linux-amd64.tar.gz && \
+  mv go /usr/local && \
+  mkdir /root/go
+
+# Go Environment
+ENV GOROOT /usr/local/go
+ENV GOPATH /root/go
+ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
+
+ADD .vimrc-slim /root/.vimrc
+RUN go get github.com/go-delve/delve/cmd/dlv
+
+WORKDIR /root/go
+
+# Install SSH
+RUN apt install openssh-server locales -y
+RUN echo "root:theoryofhappiness" | chpasswd && \
+  mkdir /var/run/sshd
+
+# SSH setting
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+
+# Language Setting
+RUN locale-gen ko_KR.UTF-8
+ENV LANG ko_KR.UTF-8
+ENV LANGUAGE ko_KR:en
+ENV LC_ALL ko_KR.UTF-8
+
+ADD ["entrypoint.sh", "./"]
+ENTRYPOINT ["./entrypoint.sh"]

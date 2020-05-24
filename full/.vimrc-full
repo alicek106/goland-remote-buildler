@@ -1,0 +1,10 @@
+execute pathogen#infect()
+syntax on
+filetype plugin indent on
+set encoding=utf-8
+
+set ts=4
+
+map <F8> :NERDTreeToggle<CR>
+map <F2> :GoDef<CR>
+map <F4> :TagbarToggle<CR>
